@@ -8,6 +8,8 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.session import Session
 from user import User
 from user import Base
+from sqlalchemy.orm.exc import NoResultFound
+from sqlalchemy.exc import InvalidRequestError
 
 class DB:
     """
@@ -45,3 +47,50 @@ class DB:
         self._session.add(user)
         self._session.commit()
         return user
+
+    def find_user_by(self, **kwargs) -> User:
+        """Find the first user that matches the provided filter criteria
+
+        Args:
+            **kwargs: Arbitrary keyword arguments that are used as filters for the query
+
+        Returns:
+            User: The first User object that matches the filter criteria
+
+        Raises:
+            NoResultFound: If no results are found that match the provided filter criteria
+            InvalidRequestError: If the provided filter criteria are invalid
+        """
+        try:
+            user = self._session.query(User).filter_by(**kwargs).first()
+            if user is None:
+                raise NoResultFound()
+            return user
+        except InvalidRequestError as e:
+            self._session.rollback()
+            raise e
+        except NoResultFound as e:
+            self._session.rollback()
+            raise e
+
+    def update_user(self, user_id: int, **kwargs) -> None:
+        """Update a user in the database with the provided keyword arguments
+
+        Args:
+            user_id (int): The ID of the user to update
+            **kwargs: Arbitrary keyword arguments that are used to update the user's attributes
+
+        Raises:
+            ValueError: If an argument that does not correspond to a user attribute is passed
+        """
+        try:
+            user = self.find_user_by(id=user_id)
+            for attr, value in kwargs.items():
+                if hasattr(user, attr):
+                    setattr(user, attr, value)
+                else:
+                    raise ValueError(f"Invalid user attribute: {attr}")
+            self._session.commit()
+        except (NoResultFound, InvalidRequestError) as e:
+            self._session.rollback()
+            raise e
