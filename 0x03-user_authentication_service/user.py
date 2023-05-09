@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+
+
 """
 This file creates a user model
 """
@@ -6,10 +8,12 @@ This file creates a user model
 from sqlalchemy import Column, Integer, String
 from sqlalchemy.ext.declarative import declarative_base
 
+
 Base = declarative_base()
 
 
 class User(Base):
+    """User model"""
     __tablename__ = 'users'
     id = Column(Integer, primary_key=True)
     email = Column(String(120), nullable=False, unique=True)
